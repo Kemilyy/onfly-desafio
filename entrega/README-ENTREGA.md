@@ -2,23 +2,23 @@
 
 ## Defeitos corrigidos
 
-Foram identificados e corrigidos dois defeitos na função `convert_to_brl`, localizada no arquivo `currency_converter.py`.
-
 | # | Defeito | Causa raiz |
 |---|---|---|
-| 1 | Conversão de câmbio invertida | A taxa de câmbio era aplicada por divisão em vez de multiplicação, resultando em valores incorretos. |
-| 2 | Cálculo monetário com `float` | Os valores de `amount` e `rate` eram convertidos para `float` antes da operação, causando perda de precisão que não era recuperada ao converter o resultado novamente para `Decimal`. |
+| 1 | Conversão de câmbio invertida | A função dividia o valor pela taxa, em vez de multiplicá-lo por `rate_to_brl`. |
+| 2 | Cálculo monetário com `float` | A função convertia `amount` e `rate` para `float`, perdendo precisão antes de retornar o resultado como `Decimal`. |
+| 3 | Cálculo de noites entre meses | O cálculo subtraía apenas o dia do mês (`checkout.day - checkin.day`), ignorando mês e ano. |
+| 4 | Status faturáveis incorretos | A função considerava faturável qualquer status diferente de `CANCELLED`, incluindo `NO_SHOW`, em vez de aceitar somente `CONFIRMED`. |
+| 5 | Ordem do ranking de hotéis | O ranking ordenava os valores em ordem crescente; a regra exige ordem decrescente e desempate por `hotel_id` crescente. |
+| 6 | Leitura parcial do CSV de reservas | O repositório interrompia a leitura ao chegar a 200 reservas, deixando de incluir as linhas seguintes. |
 
 ## Como investiguei
 
-1. Li o README do desafio e executei `pytest -q` para verificar o estado inicial do projeto, identificando que todos os testes falhavam.
-2. Analisei o sintoma apresentado no enunciado, relacionado aos valores incorretos no relatório consolidado.
-3. Consultei o arquivo `tests/test_currency.py` para compreender os cenários de teste e os resultados esperados.
-4. Identifiquei uma dica no código que indicava que a taxa deveria ser aplicada por multiplicação, e não por divisão.
-5. Analisei `tests/helpers.py` para entender como o CLI era executado e quais taxas eram utilizadas. Com a taxa de USD = 5,42, deduzi que a conversão de 100 dólares deveria resultar em R$ 542,00.
-6. Verifiquei a implementação de `CsvRateRepository` e concluí que o problema não estava na obtenção das taxas, mas na aplicação delas.
-7. Analisei a função `convert_to_brl`, em `currency_converter.py`, onde encontrei a divisão incorreta e o uso de `float` nos cálculos monetários.
-8. Corrigi os dois problemas, mantendo o uso de `Decimal` durante toda a operação, e executei novamente os testes para verificar os resultados.
+1. Li o README do desafio e executei `pytest -q` para identificar o estado inicial dos testes.
+2. Analisei as falhas e relacionei cada cenário ao teste, ao arquivo e à função correspondentes.
+3. Conferi as regras e as docstrings do código para localizar a causa de cada resultado incorreto.
+4. Corrigi o câmbio, o cálculo de noites, a regra de faturamento e a ordenação dos hotéis; depois, executei novamente os testes originais.
+5. Após os testes originais passarem, pedi à IA uma revisão da cobertura em relação aos requisitos. Essa revisão identificou o limite de 200 linhas no repositório de reservas, que também foi removido.
+6. Acrescentei testes para o ranking com desempate, arquivos com mais de 200 reservas, exclusão de reservas não confirmadas, amostra oficial, argumentos do CLI, arredondamento, média sem noites e ordenação mensal.
 
 ## Como validar
 
@@ -48,14 +48,13 @@ PYTHONPATH=src python -m onfly_report \
 
 ## Resultado dos testes
 
-Após as correções, os testes foram executados novamente para verificar o funcionamento da aplicação e confirmar a resolução dos defeitos.
+Comando executado no ambiente virtual:
 
-```text
-[Inserir aqui a saída real do pytest]
+```powershell
+pytest -q 
 ```
 
-## Observações
-
-- Os testes fornecidos originalmente não foram alterados.
-- As correções foram realizadas diretamente na implementação da função `convert_to_brl`.
-- Os cálculos monetários passaram a utilizar `Decimal`, evitando perdas de precisão associadas ao uso de `float`.
+```text
+.............. 
+14 passed in 4.25s
+```
